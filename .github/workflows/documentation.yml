@@ -28,7 +28,7 @@ jobs:
       # configure project via CMake
       - name: Configure
         run: |
-          export PATH=$HOME/doxygen-1.9.2/bin/doxygen:$PATH
+          export PATH=$HOME/doxygen-1.9.2/bin/:$PATH
           cd PLSSVM
           mkdir build
           cd build
