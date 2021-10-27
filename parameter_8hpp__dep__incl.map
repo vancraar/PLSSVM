@@ -1,7 +1,0 @@
-<map id="include/plssvm/parameter.hpp" name="include/plssvm/parameter.hpp">
-<area shape="rect" id="node1" title="Implements the parameter base class encapsulating all necessary parameters." alt="" coords="97,5,316,32"/>
-<area shape="rect" id="node2" href="$core_8hpp.html" title="Core header including all other necessary headers." alt="" coords="116,169,296,196"/>
-<area shape="rect" id="node3" href="$csvm__factory_8hpp.html" title="Factory function for constructing a new C&#45;SVM using one of the available backends based on the provid..." alt="" coords="27,80,186,121"/>
-<area shape="rect" id="node4" href="$parameter__predict_8hpp.html" title="Implements a class encapsulating all necessary parameters for predicting using the C&#45;SVM possibly pro..." alt="" coords="210,80,402,121"/>
-<area shape="rect" id="node5" href="$parameter__train_8hpp.html" title="Implements a class encapsulating all necessary parameters for training the C&#45;SVM possibly provided th..." alt="" coords="426,80,618,121"/>
-</map>

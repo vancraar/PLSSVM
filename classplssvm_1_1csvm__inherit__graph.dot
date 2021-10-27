@@ -1,0 +1,24 @@
+digraph "plssvm::csvm&lt; T &gt;"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="plssvm::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Base class for all C-SVM backends."];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="plssvm::detail::gpu\l_csvm\< T, ::plssvm::\lcuda::detail::device\l_ptr\< T \>, int \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1detail_1_1gpu__csvm.html",tooltip=" "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="plssvm::cuda::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1cuda_1_1csvm.html",tooltip="A C-SVM implementation using CUDA as backend."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="plssvm::detail::gpu\l_csvm\< T, ::plssvm::\lopencl::detail::device\l_ptr\< T \>, ::plssvm::opencl\l::detail::command_queue \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1detail_1_1gpu__csvm.html",tooltip=" "];
+  Node4 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="plssvm::opencl::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1opencl_1_1csvm.html",tooltip="A C-SVM implementation using OpenCL as backend."];
+  Node1 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="plssvm::detail::gpu\l_csvm\< T, ::plssvm::\lsycl::detail::device\l_ptr\< T \>, ::sycl::queue \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1detail_1_1gpu__csvm.html",tooltip=" "];
+  Node6 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="plssvm::sycl::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1sycl_1_1csvm.html",tooltip="A C-SVM implementation using SYCL as backend."];
+  Node1 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="plssvm::detail::gpu\l_csvm\< T, device_ptr\l_t, queue_t \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1detail_1_1gpu__csvm.html",tooltip="A C-SVM implementation for all GPU backends to reduce code duplication."];
+  Node1 -> Node9 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="plssvm::openmp::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1openmp_1_1csvm.html",tooltip="A C-SVM implementation using OpenMP as backend."];
+}

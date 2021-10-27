@@ -1,0 +1,20 @@
+digraph "include/plssvm/exceptions/exceptions.hpp"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="include/plssvm/exceptions\l/exceptions.hpp",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Implements custom exception classes derived from std::runtime_error including source location informa..."];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="include/plssvm/backends\l/CUDA/exceptions.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$backends_2CUDA_2exceptions_8hpp.html",tooltip="Implements custom exception classes specific to the CUDA backend."];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="include/plssvm/backends\l/OpenCL/exceptions.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$backends_2OpenCL_2exceptions_8hpp.html",tooltip="Implements custom exception classes specific to the OpenCL backend."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="include/plssvm/backends\l/OpenMP/exceptions.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$backends_2OpenMP_2exceptions_8hpp.html",tooltip="Implements custom exception classes specific to the OpenMP backend."];
+  Node1 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="include/plssvm/backends\l/SYCL/exceptions.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$backends_2SYCL_2exceptions_8hpp.html",tooltip="Implements custom exception classes specific to the SYCL backend."];
+  Node1 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="include/plssvm/core.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$core_8hpp.html",tooltip="Core header including all other necessary headers."];
+  Node1 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="include/plssvm/csvm\l_factory.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$csvm__factory_8hpp.html",tooltip="Factory function for constructing a new C-SVM using one of the available backends based on the provid..."];
+  Node7 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

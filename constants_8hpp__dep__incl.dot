@@ -1,0 +1,19 @@
+digraph "include/plssvm/constants.hpp"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="include/plssvm/constants.hpp",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Global type definitions and compile-time constants."];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="include/plssvm/backends\l/CUDA/predict_kernel.cuh",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$predict__kernel_8cuh.html",tooltip="Defines the functions used for prediction for the C-SVM using the CUDA backend."];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="include/plssvm/backends\l/CUDA/q_kernel.cuh",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$q__kernel_8cuh.html",tooltip="Defines CUDA functions for generating the q vector."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="include/plssvm/backends\l/CUDA/svm_kernel.cuh",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$svm__kernel_8cuh.html",tooltip="Defines the kernel functions for the C-SVM using the CUDA backend."];
+  Node1 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="include/plssvm/backends\l/SYCL/predict_kernel.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$predict__kernel_8hpp.html",tooltip="Defines the functions used for prediction for the C-SVM using the SYCL backend."];
+  Node1 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="include/plssvm/backends\l/SYCL/q_kernel.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SYCL_2q__kernel_8hpp.html",tooltip="Defines SYCL functions for generating the q vector."];
+  Node1 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="include/plssvm/backends\l/SYCL/svm_kernel.hpp",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$SYCL_2svm__kernel_8hpp.html",tooltip="Defines the kernel functions for the C-SVM using the SYCL backend."];
+}

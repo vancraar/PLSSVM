@@ -1,0 +1,11 @@
+digraph "plssvm::unsupported_backend_exception"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="plssvm::unsupported\l_backend_exception",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Exception type thrown if the requested backend is not supported on the target machine."];
+  Node2 -> Node1 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="plssvm::exception",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1exception.html",tooltip="Base class for all custom exception types. Forwards its message to std::runtime_error and saves the e..."];
+  Node3 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="std::runtime_error",height=0.2,width=0.4,color="grey75", fillcolor="white", style="filled",tooltip=" "];
+}

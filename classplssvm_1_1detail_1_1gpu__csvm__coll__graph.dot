@@ -1,0 +1,9 @@
+digraph "plssvm::detail::gpu_csvm&lt; T, device_ptr_t, queue_t &gt;"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="plssvm::detail::gpu\l_csvm\< T, device_ptr\l_t, queue_t \>",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="A C-SVM implementation for all GPU backends to reduce code duplication."];
+  Node2 -> Node1 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="plssvm::csvm\< T \>",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classplssvm_1_1csvm.html",tooltip="Base class for all C-SVM backends."];
+}

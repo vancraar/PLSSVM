@@ -1,0 +1,13 @@
+digraph "include/plssvm/backends/OpenCL/detail"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  compound=true
+  subgraph clusterdir_d7c00eaa22908fd671a35ffbda10ce1f {
+    graph [ bgcolor="#edf0f7", pencolor="grey50", style="filled,dashed,", label="OpenCL", fontname="Helvetica", fontsize="10", URL="dir_d7c00eaa22908fd671a35ffbda10ce1f.html"]
+  dir_26d9ce1ebc5b1115119c3c93b3a20999 [shape=box, label="detail", style="filled,bold,", fillcolor="#edf0f7", color="grey25", URL="dir_26d9ce1ebc5b1115119c3c93b3a20999.html"];
+  }
+  dir_f7dfbd464fc0226e1f04610e75575ed1 [shape=box, label="detail", style="", fillcolor="#edf0f7", color="grey50", URL="dir_f7dfbd464fc0226e1f04610e75575ed1.html"];
+  dir_26d9ce1ebc5b1115119c3c93b3a20999->dir_f7dfbd464fc0226e1f04610e75575ed1 [headlabel="1", labeldistance=1.5 headhref="dir_000003_000005.html"];
+}

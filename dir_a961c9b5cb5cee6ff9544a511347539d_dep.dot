@@ -1,0 +1,11 @@
+digraph "include/plssvm/backends/SYCL/detail"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  compound=true
+  subgraph clusterdir_aeeba53c5fb17833c0f52606d68a5aa8 {
+    graph [ bgcolor="#edf0f7", pencolor="grey50", style="filled,dashed,", label="SYCL", fontname="Helvetica", fontsize="10", URL="dir_aeeba53c5fb17833c0f52606d68a5aa8.html"]
+  dir_a961c9b5cb5cee6ff9544a511347539d [shape=box, label="detail", style="filled,bold,", fillcolor="#edf0f7", color="grey25", URL="dir_a961c9b5cb5cee6ff9544a511347539d.html"];
+  }
+}
