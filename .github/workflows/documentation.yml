@@ -28,7 +28,7 @@ jobs:
           mkdir build
           cd build
           cmake -G "Unix Makefiles" ..
-          make -j
+          make -j 4
           sudo make install
       # configure project via CMake
       - name: Configure
