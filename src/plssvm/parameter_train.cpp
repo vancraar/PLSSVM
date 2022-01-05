@@ -21,6 +21,8 @@
 #include <string>     // std::string
 #include <utility>    // std::move
 
+#include <mpi.h>
+
 namespace plssvm {
 
 template <typename T>
@@ -107,6 +109,10 @@ parameter_train<T>::parameter_train(int argc, char **argv) {
 
     // parse print info
     print_info = !print_info;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    print_info = print_info && (rank == 0);
 
     // parse input data filename
     if (!result.count("input")) {

@@ -13,6 +13,8 @@
 #include <exception>  // std::exception
 #include <iostream>   // std::cerr, std::endl
 
+#include <mpi.h>
+
 // perform calculations in single precision if requested
 #ifdef PLSSVM_EXECUTABLES_USE_SINGLE_PRECISION
 using real_type = float;
@@ -22,17 +24,30 @@ using real_type = double;
 
 int main(int argc, char *argv[]) {
     try {
+
+        MPI_Init(&argc, &argv);
+
+        int rank, world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
         // parse SVM parameter from command line
         plssvm::parameter_train<real_type> params{ argc, argv };
 
         // create SVM
         auto svm = plssvm::make_csvm(params);
+        
 
+        MPI_Barrier(MPI_COMM_WORLD);
         // learn
         svm->learn();
 
-        // save model file
-        svm->write_model(params.model_filename);
+        if (rank == 0) {
+            // save model file
+            svm->write_model(params.model_filename);
+        }
+        MPI_Finalize();
 
     } catch (const plssvm::exception &e) {
         std::cerr << e.what_with_loc() << std::endl;

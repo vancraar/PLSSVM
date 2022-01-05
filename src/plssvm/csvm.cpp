@@ -33,6 +33,8 @@
 #include <utility>    // std::move
 #include <vector>     // std::vector
 
+#include <mpi.h>
+
 namespace plssvm {
 
 template <typename T>
@@ -243,6 +245,7 @@ void csvm<T>::learn() {
     // solve minimization
     std::vector<real_type> alpha;
     alpha = solver_CG(b, num_features_, epsilon_, q);
+
     bias_ = value_ptr_->back() + QA_cost_ * sum(alpha) - (transposed{ q } * alpha);
     alpha.emplace_back(-sum(alpha));
 

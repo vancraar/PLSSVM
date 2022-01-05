@@ -174,12 +174,26 @@ target_link_libraries(${PLSSVM_BASE_LIBRARY_NAME} PUBLIC fmt::fmt)
 ########################################################################################################################
 ##                                                 create executables                                                 ##
 ########################################################################################################################
+
+find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_PATH})
+
 ## create train executable
 set(PLSSVM_EXECUTABLE_TRAIN_NAME svm-train)
 add_executable(${PLSSVM_EXECUTABLE_TRAIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/src/main_train.cpp)
 ## create predict executable
 set(PLSSVM_EXECUTABLE_PREDICT_NAME svm-predict)
 add_executable(${PLSSVM_EXECUTABLE_PREDICT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/src/main_predict.cpp)
+
+target_link_libraries(${PLSSVM_EXECUTABLE_TRAIN_NAME} ${MPI_LIBRARIES})
+set_target_properties(${PLSSVM_EXECUTABLE_TRAIN_NAME} PROPERTIES
+    COMPILE_FLAGS "${MPI_COMPILE_FLAGS}"
+    LINK_FLAGS "${MPI_LINK_FLAGS}")
+
+target_link_libraries(${PLSSVM_EXECUTABLE_PREDICT_NAME} ${MPI_LIBRARIES})
+set_target_properties(${PLSSVM_EXECUTABLE_PREDICT_NAME} PROPERTIES
+    COMPILE_FLAGS "${MPI_COMPILE_FLAGS}"
+    LINK_FLAGS "${MPI_LINK_FLAGS}")
 
 ## append executables to installed targets
 list(APPEND PLSSVM_TARGETS_TO_INSTALL ${PLSSVM_EXECUTABLE_TRAIN_NAME} ${PLSSVM_EXECUTABLE_PREDICT_NAME})
