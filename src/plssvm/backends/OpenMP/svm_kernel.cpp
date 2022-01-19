@@ -14,7 +14,6 @@
 #include <utility>  // std::forward
 #include <vector>   // std::vector
 
-#include <fstream>
 #include <iostream>
 
 #include <mpi.h>
@@ -34,134 +33,58 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
     MPI_Datatype mpi_real_type;
     MPI_Type_match_size(MPI_TYPECLASS_REAL, sizeof(real_type), &mpi_real_type);
 
-    /*
-    if (rank == 0) {
-        std::cout << "d: " << std::endl;
-        for (int i = 0; i < d.size(); i++) {
-            std::cout << i << ": " << d[i] << std::endl;
-        }
-    
-        std::cout << "ret: " << std::endl;
-        for (int i = 0; i < ret.size(); i++) {
-            std::cout << i << ": " << ret[i] << std::endl;
-        }
-    
-        std::cout << "cost: " << cost << std::endl;
-        std::cout << "add: " << add << std::endl;
-        std::cout << "QA_cost: " << QA_cost << std::endl;
-    
-        std::cout << "data: " << std::endl;
-        for (int i = 0; i < data.size(); i++) {
-            for (int j = 0; j < data[0].size(); j++) {
-                std::cout << data[i][j] << " ";
-            }
-            std::cout << "\n";
-        }
-    }
-    */
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // only root rank remembers the right side of the equation
 
     if (rank != 0) {
         std::fill(ret.begin(), ret.end(), real_type{ 0.0 });
     }
 
+    int n = data.size() - 1; // could also use dept variable
+    int t = world_size;
 
-    //std::cout << data.size() << " ; " << data[0].size() << " ; " << (rank + 1) * data.size() / world_size << std::endl;
+    // prepare variables for a MNF
+    int a = 1;
+    int b = -(2 * n + 1);
 
+    int c_lower = n * n + n - (((n * n + 1) * rank) / t); // is a squared function noticably faster?
+    int c_upper = n * n + n - (((n * n + 1) * (rank + 1)) / t);
 
-    for (kernel_index_type j = 0; j < dept; j += OPENMP_BLOCK_SIZE) {
-        for (kernel_index_type i = j; i < dept; i += OPENMP_BLOCK_SIZE) {
-            for (kernel_index_type ii = 0; ii < OPENMP_BLOCK_SIZE && ii + i < dept; ++ii) {
-                real_type ret_iii = 0.0;
-                for (kernel_index_type jj = 0; jj < OPENMP_BLOCK_SIZE && jj + j < dept; ++jj) {
-                    if (ii + i < (rank+1)*data.size()/world_size) {
-                        if (ii + i >= jj + j) {
-                            const real_type temp = (kernel_function<kernel>(data[ii + i], data[jj + j], std::forward<Args>(args)...) + QA_cost - q[ii + i] - q[jj + j]) * add;
-                            /*
-                            std::cout << "data[" << ii + i << "]:" << std::endl;
-                            for (int a = 0; a < data[ii+i].size(); a++) {
-                                std::cout << a << ": " << data[ii + i][a] << std::endl;
-                            }
-                            std::cout << "data[" << jj + j << "]:" << std::endl;
-                            for (int a = 0; a < data[jj + j].size(); a++) {
-                                std::cout << a << ": " << data[jj + j][a] << std::endl;
-                            }
-                            */
-                            
-                            //std::cout << "Kernel: " << kernel_function<kernel>(data[ii + i], data[jj + j], std::forward<Args>(args)...) << std::endl;
-                            //std::cout << "temp: " << temp << " ; " << ii+i << " ; " << jj+j << std::endl;
-                            
-                            if (ii + i == jj + j) {
-                                ret_iii += (temp + cost * add) * d[ii + i];
-                            } else {
-                                ret_iii += temp * d[jj + j];
-                                /*
-                                if (jj + j == 0) {
-                                    std::cout << temp << " ; " << d[ii + i] << std::endl;
-                                    std::cout << temp * d[ii + i] << std::endl;
-                                }*/
-                                ret[jj + j] += temp * d[ii + i];
-                            }
-                        }
-                    }
-                }
-                /*
-                if (ii + i == 0) {
-                    std::cout << ret_iii << std::endl;
-                }*/
-                ret[ii + i] += ret_iii;
+    // compute the lower and upper bound with a simple MNF formula
+
+    int lowerBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_lower)) / (2 * a))));
+    int upperBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_upper)) / (2 * a))));
+
+    for (kernel_index_type i = lowerBound; i < upperBound; ++i) {
+        real_type ret_i = 0.0;
+        for (kernel_index_type j = 0; j <= i; ++j) {
+            const real_type temp = (kernel_function<kernel>(data[i], data[j], std::forward<Args>(args)...) + QA_cost - q[i] - q[j]) * add;
+            if (i == j) {
+                ret_i += (temp + cost * add) * d[i];
+            } else {
+                ret_i += temp * d[j];
+                ret[j] += temp * d[i];
             }
         }
+        ret[i] += ret_i;
     }
-
-    /*
-    for (int i = 0; i < world_size; i++) {
-        if (rank == i) {
-            std::cout << "ret " << rank << ":" << std::endl;
-            for (int j = 0; j < ret.size(); j++) {
-                std::cout << ret[j] << "; ";
-            }
-            std::cout << std::endl;
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
-    */
-    double startTime = MPI_Wtime();
 
     if (rank != 0) {
         MPI_Send(&ret[0], ret.size(), mpi_real_type, 0, 1, MPI_COMM_WORLD);
     } else {
         MPI_Status status;
         std::vector<real_type> temp_ret(ret.size());
-        int received = 0;
-        for(int i = 1; i < world_size; i++){ 
+        for (kernel_index_type i = 1; i < world_size; ++i) {
             MPI_Recv(&temp_ret[0], temp_ret.size(), mpi_real_type, i, 1, MPI_COMM_WORLD, &status);
-            for (int j = 0; j < temp_ret.size(); j++) {
+            for (kernel_index_type j = 0; j < temp_ret.size(); ++j) {
                 ret[j] += temp_ret[j];
             }
-            received++;
         }
     }
-    
+
     MPI_Bcast(&ret[0], ret.size(), mpi_real_type, 0, MPI_COMM_WORLD);
-    double endTime = MPI_Wtime();
-    std::cout << "time: " << endTime - startTime << std::endl;
 
-    /*
-    if (rank == 0) {
-        std::cout << "ret: " << std::endl;
-        for (int i = 0; i < ret.size(); i++) {
-            std::cout << i << ": " << ret[i] << std::endl;
-        }
-    }*/
-
-
-    /*
-    std::ofstream myfile;
-    myfile.open("data.txt", std::ios_base::app);
-    myfile << "\nret: " << std::endl;*/
-    // myfile.close();
- 
-    
 }
 
 }  // namespace detail

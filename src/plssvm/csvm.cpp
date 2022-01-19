@@ -34,6 +34,7 @@
 #include <vector>     // std::vector
 
 #include <mpi.h>
+#include <iostream>
 
 namespace plssvm {
 
@@ -218,18 +219,18 @@ void csvm<T>::learn() {
 
     std::vector<real_type> q;
     std::vector<real_type> b = *value_ptr_;
-    #pragma omp parallel sections
+    
     {
-        #pragma omp section  // generate q
+          // generate q
         {
             q = generate_q();
         }
-        #pragma omp section  // generate right-hand side from equation
+          // generate right-hand side from equation
         {
             b.pop_back();
             b -= value_ptr_->back();
         }
-        #pragma omp section  // generate bottom right from A
+          // generate bottom right from A
         {
             QA_cost_ = kernel_function(data_ptr_->back(), data_ptr_->back()) + 1 / cost_;
         }
