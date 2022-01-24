@@ -25,6 +25,9 @@
 #include <algorithm>  // std::fill, std::all_of
 #include <vector>     // std::vector
 
+#include <mpi.h>
+#include <iostream>
+
 namespace plssvm::openmp {
 
 template <typename T>
@@ -80,6 +83,12 @@ template <typename T>
 auto csvm<T>::solver_CG(const std::vector<real_type> &b, const std::size_t imax, const real_type eps, const std::vector<real_type> &q) -> std::vector<real_type> {
     using namespace plssvm::operators;
 
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    MPI_Datatype mpi_real_type;
+    MPI_Type_match_size(MPI_TYPECLASS_REAL, sizeof(real_type), &mpi_real_type);
+
     std::vector<real_type> alpha(b.size(), 1.0);
     const typename std::vector<real_type>::size_type dept = b.size();
 
@@ -93,6 +102,7 @@ auto csvm<T>::solver_CG(const std::vector<real_type> &b, const std::size_t imax,
 
     // delta = r.T * r
     real_type delta = transposed{ r } * r;
+    MPI_Bcast(&delta, 1, mpi_real_type, 0, MPI_COMM_WORLD);
     const real_type delta0 = delta;
     std::vector<real_type> Ad(dept);
 
@@ -102,39 +112,58 @@ auto csvm<T>::solver_CG(const std::vector<real_type> &b, const std::size_t imax,
     for (; run < imax; ++run) {
         if (print_info_) {
             fmt::print("Start Iteration {} (max: {}) with current residuum {} (target: {}).\n", run + 1, imax, delta, eps * eps * delta0);
+            std::cout << std::flush;
         }
         // Ad = A * d
         std::fill(Ad.begin(), Ad.end(), real_type{ 0.0 });
+
+        MPI_Bcast(&d[0], d.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+
         run_device_kernel(q, Ad, d, *data_ptr_, 1);
 
-        // (alpha = delta_new / (d^T * q))
-        const real_type alpha_cd = delta / (transposed{ d } * Ad);
+        if (rank == 0) {
+            // (alpha = delta_new / (d^T * q))
+            const real_type alpha_cd = delta / (transposed{ d } * Ad);
 
-        // (x = x + alpha * d)
-        alpha += alpha_cd * d;
+            // (x = x + alpha * d)
+            alpha += alpha_cd * d;
 
-        // (r = b - A * x)
-        // r = b
-        r = b;
-        // r -= A * x
+            // (r = b - A * x)
+            // r = b
+            r = b;
+            // r -= A * x
+        }
+
+        MPI_Bcast(&r[0], r.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&alpha[0], alpha.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+
         run_device_kernel(q, r, alpha, *data_ptr_, -1);
 
         // (delta = r^T * r)
         const real_type delta_old = delta;
-        delta = transposed{ r } * r;
+        if (rank == 0) {
+            delta = transposed{ r } * r;
+        }
+
+        MPI_Bcast(&delta, 1, mpi_real_type, 0, MPI_COMM_WORLD);
+
         // if we are exact enough stop CG iterations
         if (delta <= eps * eps * delta0) {
             break;
         }
 
-        // (beta = delta_new / delta_old)
-        real_type beta = delta / delta_old;
-        // d = beta * d + r
-        d = beta * d + r;
+        if (rank == 0) {
+            // (beta = delta_new / delta_old)
+            real_type beta = delta / delta_old;
+            // d = beta * d + r
+            d = beta * d + r;
+        }
     }
     if (print_info_) {
         fmt::print("Finished after {} iterations with a residuum of {} (target: {}).\n", run + 1, delta, eps * eps * delta0);
     }
+
+    MPI_Bcast(&alpha[0], alpha.size(), mpi_real_type, 0, MPI_COMM_WORLD);
 
     return alpha;
 }

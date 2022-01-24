@@ -41,24 +41,32 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
         std::fill(ret.begin(), ret.end(), real_type{ 0.0 });
     }
 
-    int n = data.size() - 1; // could also use dept variable
-    int t = world_size;
+    int comparrisonCount = 0;
+
+    double startTime = MPI_Wtime();
+
+    double n = data.size() - 1; // could also use dept variable
+                                // overflow at n > 2,000,000,000 = 2 * 10^9
+    double t = world_size;
 
     // prepare variables for a MNF
-    int a = 1;
-    int b = -(2 * n + 1);
+    double a = 1;
+    double b = -(2 * n + 1);
 
-    int c_lower = n * n + n - (((n * n + 1) * rank) / t); // is a squared function noticably faster?
-    int c_upper = n * n + n - (((n * n + 1) * (rank + 1)) / t);
+    double c_lower = n * n + n - (((n * n + 1) * rank) / t);  // is a squared function noticably faster?
+    double c_upper = n * n + n - (((n * n + 1) * (rank + 1)) / t);
 
     // compute the lower and upper bound with a simple MNF formula
 
     int lowerBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_lower)) / (2 * a))));
     int upperBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_upper)) / (2 * a))));
 
+    double boundTime = MPI_Wtime();
+
     for (kernel_index_type i = lowerBound; i < upperBound; ++i) {
         real_type ret_i = 0.0;
         for (kernel_index_type j = 0; j <= i; ++j) {
+            comparrisonCount++;
             const real_type temp = (kernel_function<kernel>(data[i], data[j], std::forward<Args>(args)...) + QA_cost - q[i] - q[j]) * add;
             if (i == j) {
                 ret_i += (temp + cost * add) * d[i];
@@ -69,6 +77,9 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
         }
         ret[i] += ret_i;
     }
+
+    double compTime = MPI_Wtime();
+
 
     if (rank != 0) {
         MPI_Send(&ret[0], ret.size(), mpi_real_type, 0, 1, MPI_COMM_WORLD);
@@ -82,8 +93,13 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
             }
         }
     }
+    
+    double sendTime = MPI_Wtime();
 
-    MPI_Bcast(&ret[0], ret.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    std::cout << rank << " ; " << boundTime - startTime << " ; " << compTime - boundTime << " ; " << sendTime - compTime << " ; " << sendTime - startTime << " ; " << comparrisonCount << std::endl;
+
 
 }
 
