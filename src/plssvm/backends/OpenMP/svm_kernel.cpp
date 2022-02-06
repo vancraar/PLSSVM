@@ -35,30 +35,18 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // only root rank remembers the right side of the equation
 
+    // only root rank remembers the right side of the equation
     if (rank != 0) {
         std::fill(ret.begin(), ret.end(), real_type{ 0.0 });
     }
 
     int comparrisonCount = 0;
 
-    //double startTime = MPI_Wtime();
+    double startTime = MPI_Wtime();
     
-    
-    int n = data.size() - 1; // could also use dept variable
-                                // overflow at n > 2,000,000,000 = 2 * 10^9
+    int n = data.size() - 1;
     int t = world_size;
-    
-    /*
-    // prepare variables for a MNF
-    double a = 1;
-    double b = -(2 * n + 1);
-
-    double c_lower = n * n + n - (((n * n + 1) * rank) / t);  // is a squared function noticably faster?
-    double c_upper = n * n + n - (((n * n + 1) * (rank + 1)) / t);
-    */
-
 
     int lowerBoundI = 0;
     int upperBoundI = 0;
@@ -89,28 +77,28 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
     //int lowerBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_lower)) / (2 * a))));
     //int upperBound = n - static_cast<int>(std::floor(((-b - sqrt(b * b - 4 * a * c_upper)) / (2 * a))));
 
-    //double boundTime = MPI_Wtime();
+    double boundTime = MPI_Wtime();
     
     //std::cout << rank << " ; " << lowerBoundI << " ; " << upperBoundI << " ;; " << lowerBoundJ << " ; " << upperBoundJ << std::endl;
 
-    #pragma omp parallel for collapse(2) schedule(dynamic)
+    //#pragma omp parallel for collapse(2) schedule(dynamic)
     for (kernel_index_type i = lowerBoundI; i < upperBoundI; i += OPENMP_BLOCK_SIZE) {
         for (kernel_index_type j = lowerBoundJ; j < upperBoundJ; j += OPENMP_BLOCK_SIZE) {
             for (kernel_index_type ii = 0; ii < OPENMP_BLOCK_SIZE && ii + i < upperBoundI; ++ii) {
                 real_type ret_iii = 0.0;
                 for (kernel_index_type jj = 0; jj < OPENMP_BLOCK_SIZE && jj + j < std::min(ii + i + 1, upperBoundJ); ++jj) {
-                    #pragma omp atomic
+                    //#pragma omp atomic
                     comparrisonCount++;
                     const real_type temp = (kernel_function<kernel>(data[ii + i], data[jj + j], std::forward<Args>(args)...) + QA_cost - q[ii + i] - q[jj + j]) * add;
                     if (ii + i == jj + j) {
                         ret_iii += (temp + cost * add) * d[ii + i];
                     } else {
                         ret_iii += temp * d[jj + j];
-                        #pragma omp atomic
+                        //#pragma omp atomic
                         ret[jj + j] += temp * d[ii + i];
                     }
                 }
-                #pragma omp atomic
+                //#pragma omp atomic
                 ret[ii + i] += ret_iii;
             }
         }
@@ -128,26 +116,26 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
         lowerBoundJ = n / 2;
         upperBoundJ = n;
                
-        //std::cout << rank << " ; " << lowerBoundI << " ; " << upperBoundI << " ;; " << lowerBoundJ << " ; " << upperBoundJ << std::endl;
+        // std::cout << rank << " ; " << lowerBoundI << " ; " << upperBoundI << " ;; " << lowerBoundJ << " ; " << upperBoundJ << std::endl;
         
-        #pragma omp parallel for collapse(2) schedule(dynamic)
+        //#pragma omp parallel for collapse(2) schedule(dynamic)
         for (kernel_index_type i = lowerBoundI; i < upperBoundI; i += OPENMP_BLOCK_SIZE) {
             for (kernel_index_type j = lowerBoundJ; j < upperBoundJ; j += OPENMP_BLOCK_SIZE) {
                 for (kernel_index_type ii = 0; ii < OPENMP_BLOCK_SIZE && ii + i < upperBoundI; ++ii) {
                     real_type ret_iii = 0.0;
                     for (kernel_index_type jj = 0; jj < OPENMP_BLOCK_SIZE && jj + j < std::min(ii + i + 1, upperBoundJ); ++jj) {
-                        #pragma omp atomic
+                        //#pragma omp atomic
                         comparrisonCount++;
                         const real_type temp = (kernel_function<kernel>(data[ii + i], data[jj + j], std::forward<Args>(args)...) + QA_cost - q[ii + i] - q[jj + j]) * add;
                         if (ii + i == jj + j) {
                             ret_iii += (temp + cost * add) * d[ii + i];
                         } else {
                             ret_iii += temp * d[jj + j];
-                            #pragma omp atomic
+                            //#pragma omp atomic
                             ret[jj + j] += temp * d[ii + i];
                         }
                     }
-                    #pragma omp atomic
+                    //#pragma omp atomic
                     ret[ii + i] += ret_iii;
                 }
             }
@@ -155,7 +143,7 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
     }
     
 
-    //double compTime = MPI_Wtime();
+    double compTime = MPI_Wtime();
 
 
     if (rank != 0) {
@@ -170,19 +158,18 @@ void device_kernel(const std::vector<real_type> &q, std::vector<real_type> &ret,
             }
         }
     }
-    
-    //double sendTime = MPI_Wtime();
+
+    double sendTime = MPI_Wtime();
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    /*
+    
     for (int i = 0; i < world_size; i++) {
         if (i == rank) {
             //std::cout << rank << " ; " << boundTime - startTime << " ; " << compTime - boundTime << " ; " << sendTime - compTime << " ; " << sendTime - startTime << " ; " << comparrisonCount << std::endl;
-            std::cout << rank << ": " << comparrisonCount << std::endl;
         }
         MPI_Barrier(MPI_COMM_WORLD);
-    }*/
+    }
     
 }
 

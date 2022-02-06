@@ -256,11 +256,13 @@ class csvm {
     const bool print_info_;
 
     /// The data used the train the SVM.
-    const std::shared_ptr<const std::vector<std::vector<real_type>>> data_ptr_{};
+    std::shared_ptr<const std::vector<std::vector<real_type>>> data_ptr_{};
     /// The labels associated to each data point.
     std::shared_ptr<const std::vector<real_type>> value_ptr_{};
     /// The result of the CG calculation: the weights of the support vectors.
     std::shared_ptr<const std::vector<real_type>> alpha_ptr_{};
+    /// tbd
+    std::vector<std::vector<int>> bounds_;
 
     //*************************************************************************************************************************************//
     //                                                         internal variables                                                          //

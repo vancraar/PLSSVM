@@ -110,7 +110,8 @@ parameter_train<T>::parameter_train(int argc, char **argv) {
     // parse print info
     print_info = !print_info;
 
-    int rank;
+    int rank, world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     print_info = print_info && (rank == 0);
 
@@ -129,7 +130,85 @@ parameter_train<T>::parameter_train(int argc, char **argv) {
         model_filename = base_type::model_name_from_input();
     }
 
-    base_type::parse_train_file(input_filename);
+    int n = 0;
+
+    if (rank == 0) {
+        base_type::parse_train_file(input_filename);
+        n = data_ptr->size() - 1;
+    }
+
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int t = world_size;
+    int wh = t / 2;
+
+    for (int i = 0; i < world_size; ++i) {
+        int lBI1 = 0;
+        int uBI1 = 0;
+        int lBJ1 = 0;
+        int uBJ1 = 0;
+
+        int lBI2 = 0;
+        int uBI2 = 0;
+        int lBJ2 = 0;
+        int uBJ2 = 0;
+
+        int min1 = 0;
+        int max1 = 0;
+        int min2 = 0;
+        int max2 = 0;
+
+
+        if (i < wh) {
+            lBI1 = n * (i) / (wh * 2);
+            uBI1 = n * (i + 1) / (wh * 2);
+            lBJ1 = 0;
+            uBJ1 = n / 2;
+
+            if (t % 2 == 1) {
+                wh++;
+            }
+            lBI2 = n * (t - i - 1) / (wh * 2);
+            uBI2 = n * (t - i) / (wh * 2);
+
+            lBJ2 = n / 2;
+            uBJ2 = n;
+
+            min1 = 0;
+            max1 = uBI1;
+            min2 = n / 2;
+            max2 = uBI2;
+
+        } else {
+            if (t % 2 == 1) {
+                wh++;
+            }
+            lBI1 = n * (i) / (wh * 2);
+            uBI1 = n * (i + 1) / (wh * 2);
+            lBJ1 = 0;
+            uBJ1 = n / 2;
+            
+            min1 = 0;
+            max1 = n / 2;
+            min2 = lBI1;
+            max2 = uBI1;
+        }
+        
+        bounds.push_back(std::vector<int>{
+            lBI1, uBI1, lBJ1, uBJ1, lBI2, uBI2, lBJ2, uBJ2, min1, max1, min2, max2
+        });     
+    }
+        
+    /*
+    if (rank == 0) {
+        for (int i = 0; i < bounds.size(); i++) {
+            for (int j = 0; j < bounds[0].size(); j++) {
+                std::cout << bounds[i][j] << ",  ";
+            }
+            std::cout << std::endl;
+        }
+    }
+    */
 }
 
 // explicitly instantiate template class

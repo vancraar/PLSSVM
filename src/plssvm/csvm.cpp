@@ -41,20 +41,32 @@ namespace plssvm {
 template <typename T>
 csvm<T>::csvm(const parameter<T> &params) :
     target_{ params.target }, kernel_{ params.kernel }, degree_{ params.degree }, gamma_{ params.gamma }, coef0_{ params.coef0 }, cost_{ params.cost }, epsilon_{ params.epsilon }, print_info_{ params.print_info }, data_ptr_{ params.data_ptr }, value_ptr_{ params.value_ptr }, alpha_ptr_{ params.alpha_ptr }, bias_{ -params.rho } {
-    if (data_ptr_ == nullptr) {
-        throw exception{ "No data points provided!" };
-    } else if (data_ptr_->empty()) {
-        throw exception{ "Data set is empty!" };
-    } else if (!std::all_of(data_ptr_->begin(), data_ptr_->end(), [&](const std::vector<real_type> &point) { return point.size() == data_ptr_->front().size(); })) {
-        throw exception{ "All points in the data vector must have the same number of features!" };
-    } else if (data_ptr_->front().empty()) {
-        throw exception{ "No features provided for the data points!" };
-    } else if (alpha_ptr_ != nullptr && alpha_ptr_->size() != data_ptr_->size()) {
-        throw exception{ fmt::format("Number of weights ({}) must match the number of data points ({})!", alpha_ptr_->size(), data_ptr_->size()) };
+    
+    int rank = -1;
+
+    int init = -1;
+    MPI_Initialized(&init);
+    
+    if (init == 1) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     }
 
-    num_data_points_ = data_ptr_->size();
-    num_features_ = (*data_ptr_)[0].size();
+    if (init == 0 || rank == 0) {
+        if (data_ptr_ == nullptr) {
+            throw exception{ "No data points provided!" };
+        } else if (data_ptr_->empty()) {
+            throw exception{ "Data set is empty!" };
+        } else if (!std::all_of(data_ptr_->begin(), data_ptr_->end(), [&](const std::vector<real_type> &point) { return point.size() == data_ptr_->front().size(); })) {
+            throw exception{ "All points in the data vector must have the same number of features!" };
+        } else if (data_ptr_->front().empty()) {
+            throw exception{ "No features provided for the data points!" };
+        } else if (alpha_ptr_ != nullptr && alpha_ptr_->size() != data_ptr_->size()) {
+            throw exception{ fmt::format("Number of weights ({}) must match the number of data points ({})!", alpha_ptr_->size(), data_ptr_->size()) };
+        }
+
+        num_data_points_ = data_ptr_->size();
+        num_features_ = (*data_ptr_)[0].size();
+    }
 }
 
 template <typename T>
@@ -199,61 +211,174 @@ template <typename T>
 void csvm<T>::learn() {
     using namespace plssvm::operators;
 
-    PLSSVM_ASSERT(data_ptr_ != nullptr, "No data is provided!");  // exception in constructor
+    int rank, world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    if (value_ptr_ == nullptr) {
-        throw exception{ "No labels given for training! Maybe the data is only usable for prediction?" };
-    } else if (data_ptr_->size() != value_ptr_->size()) {
-        throw exception{ fmt::format("Number of labels ({}) must match the number of data points ({})!", value_ptr_->size(), data_ptr_->size()) };
+    MPI_Datatype mpi_real_type;
+    MPI_Type_match_size(MPI_TYPECLASS_REAL, sizeof(real_type), &mpi_real_type);
+    
+    MPI_Bcast(&num_data_points_, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&num_features_, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+
+    std::vector<real_type> q(num_data_points_ - 1, 0);
+    std::vector<real_type> b(num_data_points_ - 1, 0);
+
+    if (rank == 0) {
+        b = *value_ptr_;
+
+        PLSSVM_ASSERT(data_ptr_ != nullptr, "No data is provided!");  // exception in constructor
+
+        if (value_ptr_ == nullptr) {
+            throw exception{ "No labels given for training! Maybe the data is only usable for prediction?" };
+        } else if (data_ptr_->size() != value_ptr_->size()) {
+            throw exception{ fmt::format("Number of labels ({}) must match the number of data points ({})!", value_ptr_->size(), data_ptr_->size()) };
+        }
+
+        PLSSVM_ASSERT(!data_ptr_->empty(), "Data set is empty!");  // exception in constructor
+        PLSSVM_ASSERT(std::all_of(data_ptr_->begin(), data_ptr_->end(), [&](const std::vector<real_type> &point) { return point.size() == data_ptr_->front().size(); }),
+                      "All points in the data vector must have the same number of features!");    // exception in constructor
+        PLSSVM_ASSERT(!data_ptr_->front().empty(), "No features provided for the data points!");  // exception in constructor
+
+        // setup the data on the device
+        setup_data_on_device();
+
+        auto start_time = std::chrono::steady_clock::now();
+
+        {
+            // generate q
+            {
+                q = generate_q();
+            }
+            // generate right-hand side from equation
+            {
+                b.pop_back();
+                b -= value_ptr_->back();
+            }
+            // generate bottom right from A
+            {
+                QA_cost_ = kernel_function(data_ptr_->back(), data_ptr_->back()) + 1 / cost_;
+            }
+        }
+
+        auto end_time = std::chrono::steady_clock::now();
+        if (print_info_) {
+            fmt::print("Setup for solving the optimization problem done in {}.\n", std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
+        }
     }
 
-    PLSSVM_ASSERT(!data_ptr_->empty(), "Data set is empty!");  // exception in constructor
-    PLSSVM_ASSERT(std::all_of(data_ptr_->begin(), data_ptr_->end(), [&](const std::vector<real_type> &point) { return point.size() == data_ptr_->front().size(); }),
-                  "All points in the data vector must have the same number of features!");    // exception in constructor
-    PLSSVM_ASSERT(!data_ptr_->front().empty(), "No features provided for the data points!");  // exception in constructor
+    MPI_Bcast(&q[0], q.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&b[0], b.size(), mpi_real_type, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&QA_cost_, 1, mpi_real_type, 0, MPI_COMM_WORLD);
 
-    // setup the data on the device
-    setup_data_on_device();
+    std::vector<std::vector<real_type>> data(num_data_points_);
+
+    if (rank == 0) {
+        data = *data_ptr_;
+    }
+
+    //////////////////////////////////////////////////////////////
+    std::vector<std::vector<int>> bounds;
+
+    int n = num_data_points_ - 1;
+
+    int t = world_size;
+    int wh = t / 2;
+
+    for (int i = 0; i < world_size; ++i) {
+        int lBI1 = 0;
+        int uBI1 = 0;
+        int lBJ1 = 0;
+        int uBJ1 = 0;
+
+        int lBI2 = 0;
+        int uBI2 = 0;
+        int lBJ2 = 0;
+        int uBJ2 = 0;
+
+        int min1 = 0;
+        int max1 = 0;
+        int min2 = 0;
+        int max2 = 0;
+
+        if (i < wh) {
+            lBI1 = n * (i) / (wh * 2);
+            uBI1 = n * (i + 1) / (wh * 2);
+            lBJ1 = 0;
+            uBJ1 = n / 2;
+
+            if (t % 2 == 1) {
+                wh++;
+            }
+            lBI2 = n * (t - i - 1) / (wh * 2);
+            uBI2 = n * (t - i) / (wh * 2);
+
+            lBJ2 = n / 2;
+            uBJ2 = n;
+
+            min1 = 0;
+            max1 = uBI1;
+            min2 = n / 2;
+            max2 = uBI2;
+
+        } else {
+            if (t % 2 == 1) {
+                wh++;
+            }
+            lBI1 = n * (i) / (wh * 2);
+            uBI1 = n * (i + 1) / (wh * 2);
+            lBJ1 = 0;
+            uBJ1 = n / 2;
+
+            min1 = 0;
+            max1 = n / 2;
+            min2 = lBI1;
+            max2 = uBI1;
+        }
+
+        bounds.push_back(std::vector<int>{
+            lBI1, uBI1, lBJ1, uBJ1, lBI2, uBI2, lBJ2, uBJ2, min1, max1, min2, max2 });
+    }
+    //////////////////////////////////////////////////////////////
+
+
+    MPI_Status status;
+
+    for (int i = 0; i < num_data_points_; ++i) {  
+        if (rank == 0) {
+            for (int j = 1; j < world_size; ++j) {
+                if ((i >= bounds[j][8] && i < bounds[j][9]) || (i >= bounds[j][10] && i <= bounds[j][11])) {
+                    MPI_Send(&data[i][0], num_features_, mpi_real_type, j, 0, MPI_COMM_WORLD);
+                }
+            } 
+        } else {
+            if ((i >= bounds[rank][8] && i < bounds[rank][9]) || (i >= bounds[rank][10] && i <= bounds[rank][11])) {
+                data[i].resize(num_features_, 0);
+                MPI_Recv(&data[i][0], num_features_, mpi_real_type, 0, 0, MPI_COMM_WORLD, &status);
+            }
+        }
+    }
+
+    data_ptr_ = std::make_shared<const std::vector<std::vector<real_type>>>(std::move(data));
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     auto start_time = std::chrono::steady_clock::now();
-
-    std::vector<real_type> q;
-    std::vector<real_type> b = *value_ptr_;
     
-    {
-          // generate q
-        {
-            q = generate_q();
-        }
-          // generate right-hand side from equation
-        {
-            b.pop_back();
-            b -= value_ptr_->back();
-        }
-          // generate bottom right from A
-        {
-            QA_cost_ = kernel_function(data_ptr_->back(), data_ptr_->back()) + 1 / cost_;
-        }
-    }
-
-    auto end_time = std::chrono::steady_clock::now();
-    if (print_info_) {
-        fmt::print("Setup for solving the optimization problem done in {}.\n", std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
-    }
-
-    start_time = std::chrono::steady_clock::now();
-
     // solve minimization
     std::vector<real_type> alpha;
     alpha = solver_CG(b, num_features_, epsilon_, q);
 
-    bias_ = value_ptr_->back() + QA_cost_ * sum(alpha) - (transposed{ q } * alpha);
-    alpha.emplace_back(-sum(alpha));
+    if (rank == 0) {
+        bias_ = value_ptr_->back() + QA_cost_ * sum(alpha) - (transposed{ q } * alpha);
+        alpha.emplace_back(-sum(alpha));
 
-    alpha_ptr_ = std::make_shared<const std::vector<real_type>>(std::move(alpha));
-    w_.clear();
+        alpha_ptr_ = std::make_shared<const std::vector<real_type>>(std::move(alpha));
+        w_.clear();
+    }
 
-    end_time = std::chrono::steady_clock::now();
+    auto end_time = std::chrono::steady_clock::now();
     if (print_info_) {
         fmt::print("Solved minimization problem (r = b - Ax) using CG in {}.\n", std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time));
     }
@@ -359,7 +484,7 @@ auto csvm<T>::predict_label(const std::vector<std::vector<real_type>> &points) -
 }
 
 template <typename T>
-auto csvm<T>::kernel_function(const std::vector<real_type> &xi, const std::vector<real_type> &xj) -> real_type {
+auto csvm<T>::kernel_function(const std::vector<real_type> &xi, const std::vector<real_type> &xj) -> real_type {    
     PLSSVM_ASSERT(xi.size() == xj.size(), "Sizes mismatch!: {} != {}", xi.size(), xj.size());
 
     switch (kernel_) {

@@ -81,6 +81,7 @@ target_compile_options(${PLSSVM_BASE_LIBRARY_NAME} PUBLIC
 ########################################################################################################################
 ##                                    check for optional and necessary dependencies                                   ##
 ########################################################################################################################
+
 # check for OpenMP (not for the backend!)
 find_package(OpenMP 4.0 QUIET)
 if(OpenMP_FOUND)
@@ -433,6 +434,13 @@ endif()
 ########################################################################################################################
 option(PLSSVM_ENABLE_TESTING "Build tests for all backends." ON)
 if(PLSSVM_ENABLE_TESTING)
+	find_package(mpicxx CONFIG REQUIRED)
+	if(mpicxx_FOUND)
+		message(STATUS "Found package mpicxx.")
+	endif()
+
+	target_link_libraries(${PLSSVM_BASE_LIBRARY_NAME} PUBLIC mpicxx::mpicxx)
+
     enable_testing()
     add_subdirectory(tests)
 endif()

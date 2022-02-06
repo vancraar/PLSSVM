@@ -41,7 +41,6 @@ csvm<T>::csvm(const parameter<T> &params) :
         throw backend_exception{ fmt::format("Requested target platform {} that hasn't been enabled using PLSSVM_TARGET_PLATFORMS!", target_) };
 #endif
     }
-
     if (print_info_) {
         fmt::print("Using OpenMP as backend.\n\n");
     }
@@ -91,7 +90,7 @@ auto csvm<T>::solver_CG(const std::vector<real_type> &b, const std::size_t imax,
 
     std::vector<real_type> alpha(b.size(), 1.0);
     const typename std::vector<real_type>::size_type dept = b.size();
-
+    
     // sanity checks
     PLSSVM_ASSERT(dept == num_data_points_ - 1, "Sizes mismatch!: {} != {}", dept, num_data_points_ - 1);
 
